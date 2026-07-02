@@ -18,10 +18,13 @@ def build_database_uri():
             database_url = database_url.replace('postgresql://', 'postgresql+pg8000://', 1)
         return database_url
 
-    # Render persistent disk path fallback when no managed DB is configured.
-    sqlite_path = os.getenv('SQLITE_PATH', '/var/data/interview_prep.db')
-    if os.name == 'nt':
+    # Choose a writable SQLite location for each hosting environment.
+    if os.getenv('VERCEL') == '1':
+        sqlite_path = os.getenv('SQLITE_PATH', '/tmp/interview_prep.db')
+    elif os.name == 'nt':
         sqlite_path = os.getenv('SQLITE_PATH', 'interview_prep.db')
+    else:
+        sqlite_path = os.getenv('SQLITE_PATH', '/var/data/interview_prep.db')
     return f"sqlite:///{sqlite_path}"
 
 
@@ -57,6 +60,9 @@ def health_check():
 # Initialize database
 with app.app_context():
     db.create_all()
+    from routes.auth import ensure_demo_user, DEMO_MODE
+    if DEMO_MODE:
+        ensure_demo_user()
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

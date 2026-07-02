@@ -7,6 +7,23 @@ from functools import wraps
 
 bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
+DEMO_MODE = os.getenv('DEMO_MODE', '1') == '1'
+DEMO_EMAIL = os.getenv('DEMO_EMAIL', 'demo@aiinterviewprep.dev')
+DEMO_USERNAME = os.getenv('DEMO_USERNAME', 'demo')
+DEMO_PASSWORD = os.getenv('DEMO_PASSWORD', 'Demo123!')
+
+
+def ensure_demo_user():
+    user = User.query.filter_by(email=DEMO_EMAIL).first()
+    if user:
+        return user
+
+    user = User(username=DEMO_USERNAME, email=DEMO_EMAIL)
+    user.set_password(DEMO_PASSWORD)
+    db.session.add(user)
+    db.session.commit()
+    return user
+
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -20,6 +37,10 @@ def token_required(f):
                 token = token[7:]
             data = jwt.decode(token, os.getenv('SECRET_KEY', 'dev-secret-key'), algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
+            if not current_user and data.get('email'):
+                current_user = User.query.filter_by(email=data['email']).first()
+            if not current_user and DEMO_MODE:
+                current_user = ensure_demo_user()
             if not current_user:
                 return jsonify({'error': 'User not found'}), 401
         except Exception as e:
@@ -50,6 +71,8 @@ def register():
     
     token = jwt.encode({
         'user_id': user.id,
+        'email': user.email,
+        'username': user.username,
         'exp': datetime.utcnow() + timedelta(days=7)
     }, os.getenv('SECRET_KEY', 'dev-secret-key'), algorithm='HS256')
     
@@ -67,12 +90,17 @@ def login():
         return jsonify({'error': 'Missing email or password'}), 400
     
     user = User.query.filter_by(email=data['email']).first()
+
+    if not user and DEMO_MODE and data['email'] == DEMO_EMAIL and data['password'] == DEMO_PASSWORD:
+        user = ensure_demo_user()
     
     if not user or not user.check_password(data['password']):
         return jsonify({'error': 'Invalid email or password'}), 401
     
     token = jwt.encode({
         'user_id': user.id,
+        'email': user.email,
+        'username': user.username,
         'exp': datetime.utcnow() + timedelta(days=7)
     }, os.getenv('SECRET_KEY', 'dev-secret-key'), algorithm='HS256')
     
