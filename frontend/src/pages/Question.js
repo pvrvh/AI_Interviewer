@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { questionAPI } from '../services/api';
 
@@ -14,12 +14,7 @@ function Question() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadQuestion();
-    loadHints();
-  }, [id]);
-
-  const loadQuestion = async () => {
+  const loadQuestion = useCallback(async () => {
     try {
       const response = await questionAPI.getById(id);
       setQuestion(response.data.question);
@@ -40,16 +35,21 @@ function Question() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const loadHints = async () => {
+  const loadHints = useCallback(async () => {
     try {
       const response = await questionAPI.getHints(id);
       setHints(response.data.hints);
     } catch (err) {
       console.error('Failed to load hints');
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadQuestion();
+    loadHints();
+  }, [loadQuestion, loadHints]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

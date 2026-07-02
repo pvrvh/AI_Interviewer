@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { analyticsAPI } from '../services/api';
 
 function Analytics() {
@@ -9,15 +9,7 @@ function Analytics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadAnalytics();
-  }, []);
-
-  useEffect(() => {
-    loadTips();
-  }, [selectedCategory]);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
       const [statsRes, progressRes] = await Promise.all([
         analyticsAPI.getDashboard(),
@@ -31,16 +23,24 @@ function Analytics() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const loadTips = async () => {
+  const loadTips = useCallback(async () => {
     try {
       const response = await analyticsAPI.getTips(selectedCategory);
       setTips(response.data.tips);
     } catch (err) {
       console.error('Failed to load tips');
     }
-  };
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
+
+  useEffect(() => {
+    loadTips();
+  }, [loadTips]);
 
   if (loading) return <div className="container"><div className="loading">Loading...</div></div>;
   if (error) return <div className="container"><div className="error">{error}</div></div>;

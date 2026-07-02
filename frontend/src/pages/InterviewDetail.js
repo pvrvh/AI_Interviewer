@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { interviewAPI, questionAPI } from '../services/api';
 
@@ -10,11 +10,7 @@ function InterviewDetail() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    loadInterview();
-  }, [id]);
-
-  const loadInterview = async () => {
+  const loadInterview = useCallback(async () => {
     try {
       const response = await interviewAPI.getById(id);
       setInterview(response.data.interview);
@@ -23,7 +19,11 @@ function InterviewDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadInterview();
+  }, [loadInterview]);
 
   const handleGenerateQuestions = async () => {
     setGenerating(true);

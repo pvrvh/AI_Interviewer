@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ai-interview-prep-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: CORS_ORIGINS
+        sync: false
+      - key: SQLITE_PATH
+        value: /var/data/interview_prep.db
+    disk:
+      name: interview-data
+      mountPath: /var/data
+      sizeGB: 1
